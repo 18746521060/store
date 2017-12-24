@@ -1,0 +1,24 @@
+{% extends "index_base.html" %}
+{% block title %}
+    goods manage page
+{% endblock %}
+{% block head %}
+
+{% endblock %}
+{% block body %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-3 col-md-2 sidebar">
+                <ul class="nav nav-sidebar">
+                    <li><a href="{{ url_for("index") }}">总览 <span class="sr-only">(current)</span></a></li>
+                    <li><a href="{{ url_for("module_manager") }}">模块管理</a></li>
+                    <li><a href="{{ url_for("add_goods") }}">添加商品</a></li>
+                    <li class="active"><a href="{{ url_for("goods_manager") }}">商品管理</a></li>
+                </ul>
+            </div>
+            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                this goods manage page!
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% from "macro.html" import urlFor %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="csrf_token" content="{{ csrf_token() }}">
+    <script src="{{ urlFor('js/jquery-3.1.1.min.js') }}"></script>
+    <script src="{{ urlFor('js/utils.js') }}"></script>
+    <script src="{{ urlFor('js/base.js') }}"></script>
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" />
+    <title>{{ title }}</title>
+    {% block head %}{% endblock %}
+</head>
+<body>
+{% block body %}{% endblock %}
+</body>
+</html>
