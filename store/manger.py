@@ -9,6 +9,7 @@ manger = Manager(app)
 migrate = Migrate(app, db)
 manger.add_command("db", MigrateCommand)
 
+
 @manger.option("-u", dest="username")
 @manger.option("-p", dest="password")
 @manger.option("-a", dest="auth")
@@ -18,7 +19,8 @@ def registe(username, password, auth=1):
     user = model.User(username=username, password=password, auth=auth)
     db.session.add(user)
     db.session.commit()
-    print("用户:%s,添加完成"%username)
+    print("用户:%s,添加完成" % username)
+
 
 @manger.option("-u", dest="username")
 def delete_user(username):
@@ -27,9 +29,10 @@ def delete_user(username):
     if user:
         db.session.delete(user)
         db.session.commit()
-        print("删除%s用户成功"%username)
+        print("删除%s用户成功" % username)
     else:
         print("没有该用户")
+
 
 @manger.option("-u", dest="username")
 def select_user(username):
@@ -37,16 +40,26 @@ def select_user(username):
     user = model.User.query.filter_by(username=username).first()
     print(user if user else "没有该用户名")
 
+
 @manger.option("-u", dest="username")
 @manger.option("-p", dest="password")
 def update_user(username, password):
     """修改用户密码"""
     user = model.User.query.filter_by(username=username).first()
     if not user:
-        return "没有%s用户!"%username
+        return "没有%s用户!" % username
     user.password = sha256(str(password).encode("utf-8")).hexdigest()
     db.session.commit()
-    print("修改%s密码成功!"%username)
+    print("修改%s密码成功!" % username)
+
+
+# @manger.command
+# def add_number():
+#     goods = model.Goods.query.filter_by(name="康师傅方便面(袋)").first()
+#     goods.number = model.get_number()
+#     db.session.commit()
+#     print("添加 number success")
+
 
 if __name__ == "__main__":
     manger.run()

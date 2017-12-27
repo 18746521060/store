@@ -1,20 +1,20 @@
-my_ajax = {
+var my_ajax = {
     "get": function(args){
         args["method"] = "get";
-        self.ajax(args)
+        this.ajax(args)
     },
     "post": function(args){
         args["method"] = "post";
-        self.ajax(args)
+        this.ajax(args)
     },
     "ajax": function(args){
-        self.setup_tool();
+        this.setup_tool();
         $.ajax(args)
     },
     "setup_tool": function(){
         $.ajaxSetup({
             "beforeSend": function(xhr, setting){
-                var csrf_token = $("input[name=scrf_token]").attr("content");
+                var csrf_token = $("meta[name=csrf-token]").attr("content");
                 xhr.setRequestHeader("X-CSRFToken", csrf_token)
             }
         })

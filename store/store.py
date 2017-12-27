@@ -4,9 +4,9 @@ from flask import Flask
 from flask_wtf import CSRFProtect
 from flask.views import MethodView
 import config as con
-from model import db, User
-from form import User_login, User_registe
-from utils import signal_login
+from model import db, User, Module, Goods
+from form import User_login, User_registe, Add_goods
+from utils import signal_login, mail, send_mail, get_captcha, set_memcache_data, get_form_error_data
 import time
 from hashlib import sha256
 from my_decorate import user_required
@@ -15,6 +15,7 @@ app = Flask(__name__)
 app.config.from_object(con)
 CSRFProtect(app)
 db.init_app(app)
+mail.init_app(app)
 
 
 @app.route("/")
@@ -25,22 +26,117 @@ def origination():
 @app.route("/index/")
 @user_required
 def index():
-    return flask.render_template("overview.html")
+    goods_modules = Module.query.all()
+    goods = Goods.query.all()
+    con = {
+        "goods_modules": goods_modules,
+        "goods": goods
+    }
+    return flask.render_template("overview.html", **con)
 
-@app.route("/module_manager/")
+
+@app.route("/module_manager/", methods=["GET", "POST"])
 @user_required
 def module_manager():
-    return flask.render_template("module.html")
+    if flask.request.method == "GET":
+        goods_modules = Module.query.all()
+        con = {
+            "goods_modules": goods_modules
+        }
+        return flask.render_template("module.html", **con)
+    elif flask.request.method == "POST":
+        old_name = flask.request.form.get("old_name",None)
+        new_name = flask.request.form.get("new_name",None)
+        goods_module = Module.query.filter_by(name=old_name).first()
+        if not goods_module:
+            return flask.jsonify({"code": 400, "message": "没有旧模块,请检查!"})
+        goods_module.name = new_name
+        db.session.commit()
+        return flask.jsonify({"code": 200, "message": "修改成功!"})
 
-@app.route("/add_goods/")
+
+@app.route("/delete_module/", methods=["POST"])
+def delete_module():
+    name = flask.request.form.get("name", None)
+    if name:
+        goods_module = Module.query.filter_by(name=name).first()
+        if goods_module:
+            db.session.delete(goods_module)
+            db.session.commit()
+            return flask.jsonify({"code":200, "message": "删除成功!"})
+        else:
+            return flask.jsonify({"code": 400, "message": "没有该模块!"})
+    else:
+        return flask.jsonify({"code": 404, "message": "参数错误!"})
+
+@app.route("/add_goods/", methods=["GET","POST"])
 @user_required
 def add_goods():
-    return flask.render_template("add_goods.html")
+    if flask.request.method == "GET":
+        goods_modules = Module.query.all()
+        con = {
+            "goods_modules": goods_modules
+        }
+        return flask.render_template("add_goods.html", **con)
+    elif flask.request.method == "POST":
+        form = Add_goods(flask.request.form)
+        if form.validate():
+            module_name = form.goods_module.data
+            name = form.name.data
+            price = form.price.data
+            number = form.number.data
+            goods_module = Module.query.filter_by(name=module_name).first()
+            goods = Goods(name=name, price=price, number=(number or None))
+            goods.module = goods_module
+            db.session.add(goods)
+            db.session.commit()
+            return flask.jsonify({"code": 200, "message": "添加该商品成功!"})
+        else:
+            message = get_form_error_data(form)
+            return flask.jsonify({"code": 400, "message": message})
+
+
+@app.route("/add_module/", methods=["GET", "POST"])
+@user_required
+def add_module():
+    if flask.request.method == "GET":
+        return flask.render_template("add_module.html")
+    elif flask.request.method == "POST":
+        name = flask.request.form.get("name", None)
+        if not name:
+            return flask.jsonify({"code": 404, "message": "参数错误!"})
+        goods_modules = Module.query.filter_by(name=name).first()
+        if goods_modules:
+            return flask.jsonify({"code": 400, "message": "该模块已存在"})
+        else:
+            goods_module = Module(name=name)
+            db.session.add(goods_module)
+            db.session.commit()
+            return flask.jsonify({"code": 200, "message": "添加模块成功!"})
+
+
+@app.route("/check_module_name/", methods=["POST"])
+def check_module_name():
+    name = flask.request.form.get("name", None)
+    if not name:
+        return flask.jsonify({"code": 404, "message": "参数错误!"})
+    goods_modules = Module.query.filter_by(name=name).first()
+    if goods_modules:
+        return flask.jsonify({"code": 400, "message": "该模块已存在"})
+    else:
+        return flask.jsonify({"code": 200, "message": "模块名通过!"})
+
+
 
 @app.route("/goods_manager/")
 @user_required
 def goods_manager():
-    return flask.render_template("goods_manage.html")
+    goods_modules = Module.query.all()
+    con = {
+        "goods_modules": goods_modules
+    }
+    return flask.render_template("goods_manage.html", **con)
+
 
 
 class My_login(MethodView):
@@ -87,10 +183,29 @@ class My_regist(MethodView):
             }
             return flask.jsonify(data)
         else:
-            return flask.jsonify(form.errors)
+            message = get_form_error_data(form)
+            data = {
+                "code": 400,
+                "message": message
+            }
+            return flask.jsonify(data)
 
 
 app.add_url_rule("/regist/", view_func=My_regist.as_view("regist"))
+
+
+@app.route("/get_captcha/", methods=["POST"])
+def get_captcha_code():
+    email = flask.request.form.get("email", None)
+    if email:
+        captcha_code = get_captcha(6)
+        data = "欢迎注册仓库管理系统，您的注册码为:%s, 请您把注册码填写到注册页面中，该注册码30分钟内有效!" % captcha_code
+        state, rs = send_mail("库管验证码", email, data=data)
+        if state:
+            set_memcache_data(captcha_code, 60 * 30)
+            return flask.jsonify({"code": 200, "message": "恭喜，验证码发送成功!"})
+        else:
+            return flask.jsonify({"code": 400, "message": str(rs)})
 
 
 @app.errorhandler(404)
@@ -110,6 +225,7 @@ def login_username():
         return {"login_username": username}
     else:
         return {}
+
 
 if __name__ == '__main__':
     app.run()

@@ -3,7 +3,7 @@
     module page
 {% endblock %}
 {% block head %}
-
+    <script src="{{ urlFor("js/module.js") }}"></script>
 {% endblock %}
 {% block body %}
     <div class="container-fluid">
@@ -13,11 +13,38 @@
                     <li><a href="{{ url_for("index") }}">总览 <span class="sr-only">(current)</span></a></li>
                     <li class="active"><a href="{{ url_for("module_manager") }}">模块管理</a></li>
                     <li><a href="{{ url_for("add_goods") }}">添加商品</a></li>
+                    <li><a href="{{ url_for("add_module") }}">添加模块</a></li>
                     <li><a href="{{ url_for("goods_manager") }}">商品管理</a></li>
                 </ul>
             </div>
             <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-                this is module page
+                <h1 class="page-header">模块管理</h1>
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <td><h4><b>名称</b></h4></td>
+                        <td><h4><b>物品数量</b></h4></td>
+                        <td><h4><b>操作</b></h4></td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% if goods_modules %}
+                        {% for module in goods_modules %}
+                            <tr>
+                                <td>{{ module.name }}</td>
+                                <td>{{ module.goods|count }}</td>
+                                <td><span class="btn btn-primary" id="modify" module_name="{{ module.name }}">修改</span> <span class="btn btn-danger" id="delete" goods_count="{{ module.goods|count }}" module_name="{{ module.name }}">删除</span></td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td>空</td>
+                            <td>空</td>
+                            <td>无</td>
+                        </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

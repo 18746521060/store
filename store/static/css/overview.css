@@ -1,0 +1,12 @@
+.time {
+    float: right;
+    margin-top: -45px;
+}
+
+.p_right {
+    display: inline;
+    float: right;
+    margin-top: -37px;
+    margin-right: 12px;
+    font-size: 17px;
+}

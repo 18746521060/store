@@ -1,0 +1,9 @@
+.email {
+    width: 63%;
+    display: inline;
+}
+
+.captcha {
+    height: 46px;
+    margin-bottom: 4px;
+}

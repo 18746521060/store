@@ -1,0 +1,46 @@
+{% extends "index_base.html" %}
+{% block title %}
+    add module page
+{% endblock %}
+{% block head %}
+    <link rel="stylesheet" href="{{ urlFor("css/add_module.css") }}">
+    <script src="{{ urlFor("js/add_module.js") }}"></script>
+{% endblock %}
+{% block body %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-3 col-md-2 sidebar">
+                <ul class="nav nav-sidebar">
+                    <li><a href="{{ url_for("index") }}">总览 <span class="sr-only">(current)</span></a></li>
+                    <li><a href="{{ url_for("module_manager") }}">模块管理</a></li>
+                    <li><a href="{{ url_for("add_goods") }}">添加商品</a></li>
+                    <li class="active"><a href="{{ url_for("add_module") }}">添加模块</a></li>
+                    <li><a href="{{ url_for("goods_manager") }}">商品管理</a></li>
+                </ul>
+            </div>
+            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                <h1 class="page-header">添加模块</h1>
+                <div class="container">
+                    <form class="form-signin" method="post" action="">
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon">模块名称</span>
+                                <input type="text" class="form-control" name="name" placeholder="模块名称">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 col-md-6-left">
+                                <button class="btn btn-primary btn-block btn-left" type="submit" name="add">添加
+                                </button>
+                            </div>
+                            <div class="col-md-6 col-md-6-right">
+                                <button name="check_btn" class="btn btn-success btn-right btn-block" type="button">检查模块是否存在
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

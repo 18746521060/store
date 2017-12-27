@@ -104,3 +104,15 @@ body {
     display: inline-block;
     border-radius: 50%;
 }
+.col-lg-2 {
+    width: 15%;
+    margin-left: 15px;
+    padding-top: 9px;
+    margin-bottom: 15px;
+}
+.table{
+    text-align: center;
+}
+.table>tbody>tr>td{
+    vertical-align: middle;
+}
