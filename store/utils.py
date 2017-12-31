@@ -7,6 +7,11 @@ def get_form_error_data(form):
     return list(form.errors.values())[0]
 
 
+def get_price(data):
+    """get the right price(or split (元))"""
+    return float(data.split("(")[0])
+
+
 dir_path = os.path.dirname(__file__)
 file_path = os.path.join(dir_path, "store.log")
 error_path = os.path.join(dir_path, "error.log")

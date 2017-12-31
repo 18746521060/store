@@ -6,9 +6,10 @@ from flask.views import MethodView
 import config as con
 from model import db, User, Module, Goods
 from form import User_login, User_registe, Add_goods
-from utils import signal_login, mail, send_mail, get_captcha, set_memcache_data, get_form_error_data
+from utils import signal_login, mail, send_mail, get_captcha, set_memcache_data, get_form_error_data, get_price
 import time
 from hashlib import sha256
+
 from my_decorate import user_required
 
 app = Flask(__name__)
@@ -45,8 +46,8 @@ def module_manager():
         }
         return flask.render_template("module.html", **con)
     elif flask.request.method == "POST":
-        old_name = flask.request.form.get("old_name",None)
-        new_name = flask.request.form.get("new_name",None)
+        old_name = flask.request.form.get("old_name", None)
+        new_name = flask.request.form.get("new_name", None)
         goods_module = Module.query.filter_by(name=old_name).first()
         if not goods_module:
             return flask.jsonify({"code": 400, "message": "没有旧模块,请检查!"})
@@ -63,13 +64,14 @@ def delete_module():
         if goods_module:
             db.session.delete(goods_module)
             db.session.commit()
-            return flask.jsonify({"code":200, "message": "删除成功!"})
+            return flask.jsonify({"code": 200, "message": "删除成功!"})
         else:
             return flask.jsonify({"code": 400, "message": "没有该模块!"})
     else:
         return flask.jsonify({"code": 404, "message": "参数错误!"})
 
-@app.route("/add_goods/", methods=["GET","POST"])
+
+@app.route("/add_goods/", methods=["GET", "POST"])
 @user_required
 def add_goods():
     if flask.request.method == "GET":
@@ -127,7 +129,6 @@ def check_module_name():
         return flask.jsonify({"code": 200, "message": "模块名通过!"})
 
 
-
 @app.route("/goods_manager/")
 @user_required
 def goods_manager():
@@ -136,7 +137,6 @@ def goods_manager():
         "goods_modules": goods_modules
     }
     return flask.render_template("goods_manage.html", **con)
-
 
 
 class My_login(MethodView):
@@ -206,6 +206,52 @@ def get_captcha_code():
             return flask.jsonify({"code": 200, "message": "恭喜，验证码发送成功!"})
         else:
             return flask.jsonify({"code": 400, "message": str(rs)})
+
+
+@app.route("/detail/<number>/")
+def detail(number):
+    goods = Goods.query.filter_by(number=number).first()
+    goods_modules = Module.query.all()
+    con = {
+        "goods": goods,
+        "goods_modules": goods_modules
+    }
+    return flask.render_template("detail.html", **con)
+
+
+@app.route("/detail_goods/", methods=["POST"])
+def detail_goods():
+    old_number = flask.request.form.get("old_number", None)
+    name = flask.request.form.get("name", None)
+    price = flask.request.form.get("price", None)
+    number = flask.request.form.get("number", None)
+    goods_module = flask.request.form.get("module", None)
+    remarks = flask.request.form.get("remarks", None)
+    price = get_price(price)
+    new_module = Module.query.filter_by(name=goods_module).first()
+    if old_number:
+        goods = Goods.query.filter_by(number=old_number).first()
+        if goods:
+            goods.name = name
+            goods.price = price
+            goods.number = number
+            goods.module = new_module
+            goods.remarks = remarks
+            db.session.commit()
+            return flask.jsonify({"code": 200, "message": "修改成功!"})
+        return flask.jsonify({"code": 400, "message": "没有这个编码的物品,请检查编码!"})
+    return flask.jsonify({"code": 404, "message": "编码参数错误!"})
+
+
+@app.route("/seach/", methods=["POST"])
+def seach():
+    keyword = flask.request.form.get("keyword", None)
+    if not keyword:
+        return flask.jsonify({"code": 404, "message": "参数错误!"})
+    rs1 = "%{}%".format(keyword)
+    goods = Goods.query.filter(
+        db.or_(Goods.name.like(rs1), Goods.number.like(rs1))).first()
+    return flask.jsonify({"code": 200, "number": goods.number} if goods else {"code": 400, "message": "没有该商品"})
 
 
 @app.errorhandler(404)

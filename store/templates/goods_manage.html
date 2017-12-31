@@ -33,7 +33,7 @@
                         <div class="row">
                             {% if module.goods %}
                                 {% for goods in module.goods %}
-                                    <a href="#">
+                                    <a href="{{ url_for("detail", number=goods.number) }}">
                                         <div class="col-lg-2 bg-success">
                                             <p><span class="text-info"><b>名称: </b></span>{{ goods.name|truncate(4, True) }}</p>
                                             <p><span class="text-info"><b>价格: </b></span>{{ goods.price }}(元)</p>

@@ -17,9 +17,9 @@ class User_login(FlaskForm):
             return rs
         username = self.username.data
         password = self.password.data
-        password = sha256(str(password).encode("utf-8")).hexdigest()
-        user = User.query.filter_by(username=username, password=password).first()
-        if user:
+        # password = sha256(str(password).encode("utf-8")).hexdigest()
+        user = User.query.filter_by(username=username).first()
+        if user.check_pwd(password):
             return True
         else:
             self.errors["error"] = "username or password is error"

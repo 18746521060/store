@@ -3,7 +3,9 @@ from flask_script import Manager
 from exts import db
 from store import app
 import model
+from werkzeug.security import generate_password_hash, check_password_hash
 from hashlib import sha256
+
 
 manger = Manager(app)
 migrate = Migrate(app, db)
@@ -15,7 +17,7 @@ manger.add_command("db", MigrateCommand)
 @manger.option("-a", dest="auth")
 def registe(username, password, auth=1):
     """用户注册"""
-    password = sha256(str(password).encode("utf-8")).hexdigest()
+    # password = sha256(str(password).encode("utf-8")).hexdigest()
     user = model.User(username=username, password=password, auth=auth)
     db.session.add(user)
     db.session.commit()
