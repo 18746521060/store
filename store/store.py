@@ -2,17 +2,19 @@
 import flask
 from flask_wtf import CSRFProtect
 from flask.views import MethodView
-import config as con
+import config as conf
 from model import db, User, Module, Goods
 from form import User_login, User_registe, Add_goods
-from utils import signal_login, mail, send_mail, get_captcha, set_memcache_data, get_form_error_data, get_price
+from utils import signal_login, mail, get_captcha, set_memcache_data, send_mail, get_form_error_data, get_price, \
+    StoreRedis
 import time
 from hashlib import sha256
 from exts import app
 from my_decorate import user_required
-from task import send_captcha_email
 
-app.config.from_object(con)
+# from my_task import send_captcha_email
+
+app.config.from_object(conf)
 CSRFProtect(app)
 db.init_app(app)
 mail.init_app(app)
@@ -26,11 +28,20 @@ def origination():
 @app.route("/index/")
 @user_required
 def index():
-    goods_modules = Module.query.all()
-    goods = Goods.query.all()
+    # goods_modules = Module.query.all()
+    # goods = Goods.query.all()
+    # con = {
+    #     "goods_modules": goods_modules,
+    #     "goods": goods
+    # }
+    store_redis = StoreRedis()
+    all_goods_count = store_redis.get_count_string(conf.GOODS_COUNT).decode("utf-8")
+    all_module_count = store_redis.get_count_string(conf.MODULE_COUNT).decode("utf-8")
+    goods_modules = store_redis.my_redis.get_module(conf.MODULE_NAME, 0, -1)
     con = {
-        "goods_modules": goods_modules,
-        "goods": goods
+        "all_goods_count": all_goods_count,
+        "all_module_count": all_module_count,
+        "goods_modules": goods_modules
     }
     return flask.render_template("overview.html", **con)
 
@@ -39,9 +50,13 @@ def index():
 @user_required
 def module_manager():
     if flask.request.method == "GET":
-        goods_modules = Module.query.all()
+        # goods_modules = Module.query.all()
+        # con = {
+        #     "goods_modules": goods_modules
+        # }
+        module_names = StoreRedis.my_redis.get_module(conf.MODULE_NAME, 0, -1)
         con = {
-            "goods_modules": goods_modules
+            "goods_modules": module_names
         }
         return flask.render_template("module.html", **con)
     elif flask.request.method == "POST":
@@ -52,6 +67,7 @@ def module_manager():
             return flask.jsonify({"code": 400, "message": "没有旧模块,请检查!"})
         goods_module.name = new_name
         db.session.commit()
+        redis_tool()
         return flask.jsonify({"code": 200, "message": "修改成功!"})
 
 
@@ -63,6 +79,7 @@ def delete_module():
         if goods_module:
             db.session.delete(goods_module)
             db.session.commit()
+            redis_tool()
             return flask.jsonify({"code": 200, "message": "删除成功!"})
         else:
             return flask.jsonify({"code": 400, "message": "没有该模块!"})
@@ -91,10 +108,25 @@ def add_goods():
             goods.module = goods_module
             db.session.add(goods)
             db.session.commit()
+            redis_tool()
             return flask.jsonify({"code": 200, "message": "添加该商品成功!"})
         else:
             message = get_form_error_data(form)
             return flask.jsonify({"code": 400, "message": message})
+
+
+@app.route("/delete_goods/", methods=["POST"])
+def delete_goods():
+    name = flask.request.form.get("name")
+    number = flask.request.form.get("number")
+    goods1 = Goods.query.filter_by(name=name).first()
+    goods2 = Goods.query.filter_by(number=number).first()
+    if goods1 != goods2:
+        return flask.jsonify({"code": 400, "message": "页面参数错误。无法找到对应商品!"})
+    db.session.delete(goods1)
+    db.session.commit()
+    redis_tool()
+    return flask.jsonify({"code": 200, "message": "删除商品成功!"})
 
 
 @app.route("/add_module/", methods=["GET", "POST"])
@@ -113,6 +145,8 @@ def add_module():
             goods_module = Module(name=name)
             db.session.add(goods_module)
             db.session.commit()
+            StoreRedis.my_redis.add_module(conf.MODULE_NAME, goods_module)
+            StoreRedis.my_redis.incr(conf.MODULE_COUNT)
             return flask.jsonify({"code": 200, "message": "添加模块成功!"})
 
 
@@ -148,7 +182,7 @@ class My_login(MethodView):
         if form.validate():
             remember = form.remember.data
             username = form.username.data
-            flask.session[con.SESSION_NAME] = username
+            flask.session[conf.SESSION_NAME] = username
             if remember:
                 flask.session.permanent = True
             now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
@@ -201,17 +235,18 @@ def get_captcha_code():
         captcha_code = get_captcha(6)
         subject = "库管验证码"
         data = "欢迎注册仓库管理系统，您的注册码为:%s, 请您把注册码填写到注册页面中，该注册码30分钟内有效!" % captcha_code
-        # state, rs = send_mail("库管验证码", email, data=data)
-        # if state:
-        #     set_memcache_data(captcha_code, 60 * 30)
-        #     return flask.jsonify({"code": 200, "message": "恭喜，验证码发送成功!"})
-        # else:
-        #     return flask.jsonify({"code": 400, "message": str(rs)})
-        send_captcha_email.delay(subject, email, body=data)
-        return flask.jsonify({"code": 200, "message": "恭喜，验证码发送成功!"})
+        state, rs = send_mail("库管验证码", email, data=data)
+        if state:
+            set_memcache_data(captcha_code, 60 * 30)
+            return flask.jsonify({"code": 200, "message": "恭喜，验证码发送成功!"})
+        else:
+            return flask.jsonify({"code": 400, "message": str(rs)})
+            # send_captcha_email.delay(subject, email, body=data)
+            # return flask.jsonify({"code": 200, "message": "恭喜，验证码发送成功!"})
 
 
 @app.route("/detail/<number>/")
+@user_required
 def detail(number):
     goods = Goods.query.filter_by(number=number).first()
     goods_modules = Module.query.all()
@@ -257,6 +292,16 @@ def seach():
     return flask.jsonify({"code": 200, "number": goods.number} if goods else {"code": 400, "message": "没有该商品"})
 
 
+def redis_tool():
+    StoreRedis.delete_all_list(conf.MODULE_NAME)
+    goods_modules = Module.query.all()
+    goods_count = Goods.query.count()
+    for module in goods_modules:
+        StoreRedis.my_redis.add_module(conf.MODULE_NAME, module)
+    StoreRedis.set_count_string(conf.MODULE_COUNT, len(goods_modules))
+    StoreRedis.set_count_string(conf.GOODS_COUNT, goods_count)
+
+
 @app.errorhandler(404)
 def error_html(error):
     con = {
@@ -269,11 +314,16 @@ def error_html(error):
 
 @app.context_processor
 def login_username():
-    username = flask.session.get(con.SESSION_NAME, None)
+    username = flask.session.get(conf.SESSION_NAME, None)
     if username:
         return {"login_username": username}
     else:
         return {}
+
+
+@app.before_first_request
+def first_request():
+    redis_tool()
 
 
 if __name__ == '__main__':

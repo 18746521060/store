@@ -14,3 +14,8 @@ MAIL_USE_SSL = True
 MAIL_USERNAME = '2584688424@qq.com'
 MAIL_PASSWORD = 'heegkqckptljecde'
 MAIL_DEFAULT_SENDER = '2584688424@qq.com'
+
+
+GOODS_COUNT = "all_goods_count"
+MODULE_COUNT = "all_module_count"
+MODULE_NAME = "save_module_name"

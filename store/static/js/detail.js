@@ -28,7 +28,7 @@ $(function () {
                 module_val == new_module_val &&
                 remarks_val == new_remarks_val) {
                 alert("没有数据改变，无需修改!")
-            }else{
+            } else {
                 console.log("come in");
                 my_ajax.post({
                     url: "/detail_goods/",
@@ -40,10 +40,10 @@ $(function () {
                         "module": new_module_val,
                         "remarks": new_remarks_val
                     },
-                    success: function(data){
+                    success: function (data) {
                         alert(data["message"])
                     },
-                    error: function(error){
+                    error: function (error) {
                         alert("网络错误!")
                     }
                 })
@@ -52,9 +52,32 @@ $(function () {
 
         }
     });
-    $("button[name=reset]").click(function () {
+    $("button[name=delete]").click(function () {
         status = false;
-        window.location.reload();
+        // window.location.reload();
+        var number = $("input[name=number]").val();
+        var name = $("input[name=name]").val();
+        var r = confirm("您确定要删除吗?");
+        if (r == true) {
+            my_ajax.post({
+                url: "/delete_goods/",
+                data: {
+                    "name": name,
+                    "number": number
+                },
+                success: function (data) {
+                    if (data["code"] == 200) {
+                        alert(data["message"]);
+                        window.location = "/goods_manager/"
+                    } else {
+                        alert(data["message"])
+                    }
+                },
+                error: function (error) {
+                    alert("网络错误!")
+                }
+            });
+        }
     });
 
 

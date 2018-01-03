@@ -1,5 +1,6 @@
 from blinker import Namespace
 import os
+import json
 
 
 def get_form_error_data(form):
@@ -76,19 +77,7 @@ def delete_memcache_data(data):
 
 
 from flask_mail import Mail, Message
-# import flask
-#
-# app = flask.Flask(__name__)
-# app.config.update(
-#     MAIL_SERVER='smtp.qq.com',
-#     MAIL_PORT=465,
-#     MAIL_USE_SSL=True,
-#     MAIL_USERNAME='2584688424@qq.com',
-#     MAIL_PASSWORD='heegkqckptljecde',
-#     MAIL_DEFAULT_SENDER='2584688424@qq.com'
-# )
 
-# mail = Mail(app)
 mail = Mail()
 
 
@@ -107,4 +96,47 @@ def send_mail(subject, recipient, data=None, html=None):
         return False, e
 
 
+from redis import StrictRedis
 
+
+class My_redis(object):
+    def __init__(self, redis):
+        self.__redis = redis
+
+    def add_module(self, name, module):
+        count = len(module.goods)
+        self.__redis.lpush(name, module.to_json("count", count))
+
+    def get_module(self, name, start, end):
+        module_jsons = self.__redis.lrange(name, start, end)
+        module_dict_list = []
+        for module in module_jsons:
+            module_dict_list.append(json.loads(module))
+        return module_dict_list
+
+    def set_module(self, name, index, value):
+        self.__redis.lset(name, index, value)
+
+    def incr(self, key):
+        self.__redis.incr(key)
+
+    def decr(self, key):
+        self.__redis.decr(key)
+
+
+class StoreRedis(object):
+    __redis = StrictRedis(host="192.168.237.132", password="python")
+
+    my_redis = My_redis(__redis)
+
+    @classmethod
+    def set_count_string(cls, key, value, timeout=None):
+        cls.__redis.set(key, value, timeout)
+
+    @classmethod
+    def get_count_string(cls, key):
+        return cls.__redis.get(key)
+
+    @classmethod
+    def delete_all_list(cls, name):
+        cls.__redis.ltrim(name, 1, 0)

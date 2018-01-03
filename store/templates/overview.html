@@ -30,7 +30,8 @@
                 <h1 class="page-header overview">总览</h1>
                 <h5 class="time"><b><span id="current-time"></span></b></h5>
 
-                <h3>共有模块数量：{{ goods_modules|count }}个,商品数量：{{ goods|count }}个,详细信息如下：</h3>
+{#                <h3>总模块数量：{{ goods_modules|count }}个；总商品数量：{{ goods|count }}个；详细信息如下：</h3>#}
+                <h3>总模块数量：{{ all_module_count }}个；总商品数量：{{ all_goods_count }}个；详细信息如下：</h3>
                 {#                <dl class="dl-horizontal">#}
                 {#                    <dt>食品类</dt>#}
                 {#                    <dd>共有商品数量：20个</dd>#}
@@ -45,7 +46,8 @@
                 {#                </dl>#}
                 {% for module in goods_modules %}
                     <h3 class="sub-header text-info">{{ module.name }}</h3>
-                    <p class="p_right">共有商品数量：{{ module.goods|count }}个</p>
+{#                    <p class="p_right">该模块下共有商品数量：{{ module.goods|count }}个</p>#}
+                    <p class="p_right">该模块下共有商品数量：{{ module.count }}个</p>
                 {% endfor %}
             </div>
         </div>

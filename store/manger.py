@@ -62,6 +62,19 @@ def update_user(username, password):
 #     db.session.commit()
 #     print("添加 number success")
 
+@manger.command
+def check_goods():
+    goods = model.Goods.query.all()
+    print(goods)
+
+
+@manger.command
+def delete_goods():
+    goods= model.Goods.query.first()
+    db.session.delete(goods)
+    db.session.commit()
+    print("delete ok")
+
 
 if __name__ == "__main__":
     manger.run()

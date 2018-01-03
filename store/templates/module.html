@@ -32,8 +32,8 @@
                         {% for module in goods_modules %}
                             <tr>
                                 <td>{{ module.name }}</td>
-                                <td>{{ module.goods|count }}</td>
-                                <td><span class="btn btn-primary" id="modify" module_name="{{ module.name }}">修改</span> <span class="btn btn-danger" id="delete" goods_count="{{ module.goods|count }}" module_name="{{ module.name }}">删除</span></td>
+                                <td>{{ module.count }}</td>
+                                <td><span class="btn btn-primary" id="modify" module_name="{{ module.name }}">修改</span> <span class="btn btn-danger" id="delete" goods_count="{{ module.count }}" module_name="{{ module.name }}">删除</span></td>
                             </tr>
                         {% endfor %}
                     {% else %}

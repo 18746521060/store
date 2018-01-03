@@ -2,6 +2,8 @@ from exts import db
 import random
 import hashlib
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+import json
 
 
 def get_number():
@@ -15,7 +17,29 @@ auth_dict = {
 }
 
 
-class User(db.Model):
+class My_base(object):
+    def to_dict(self):
+        self_dict = {}
+        if isinstance(self, db.Model):
+            columns = self.__table__.columns
+            for column in columns:
+                value = getattr(self, column.name)
+                if isinstance(column, datetime):
+                    value = value.strftime("%Y-%m-%d %H:%M:%S")
+                self_dict[column.name] = value
+        else:
+            self_dict = self.__dict__
+        return self_dict
+
+    def to_json(self, key=None, value=None):
+        self_dict = self.to_dict()
+        if key and value:
+            self_dict[key] = value
+        self_json = json.dumps(self_dict)
+        return self_json
+
+
+class User(My_base, db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(50), nullable=False)
     _password = db.Column(db.String(100), nullable=False)
@@ -38,23 +62,23 @@ class User(db.Model):
             self.id, self.username, self.password, auth_dict.get(self.auth))
 
 
-class Module(db.Model):
+class Module(My_base, db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(30), nullable=False)
+
+    goods = db.relationship("Goods", backref="module", passive_deletes=True, cascade="all, delete-orphan")
 
     def __repr__(self):
         return "Module(id:%s,name:%s)" % (self.id, self.name)
 
 
-class Goods(db.Model):
+class Goods(My_base, db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=False)
     price = db.Column(db.Float, nullable=False)
     number = db.Column(db.String(13), nullable=False, default=get_number)
     remarks = db.Column(db.Text)
-    module_id = db.Column(db.Integer, db.ForeignKey("module.id"))
-
-    module = db.relationship("Module", backref="goods")
+    module_id = db.Column(db.Integer, db.ForeignKey("module.id", ondelete="CASCADE"))
 
     def __repr__(self):
         return "Goods(id:%s,name:%s,price:%s,number:%s,remark:%s,module_id:%s)" % (
