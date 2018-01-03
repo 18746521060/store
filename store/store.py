@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import flask
-from flask import Flask
 from flask_wtf import CSRFProtect
 from flask.views import MethodView
 import config as con
@@ -9,10 +8,10 @@ from form import User_login, User_registe, Add_goods
 from utils import signal_login, mail, send_mail, get_captcha, set_memcache_data, get_form_error_data, get_price
 import time
 from hashlib import sha256
-
+from exts import app
 from my_decorate import user_required
+from task import send_captcha_email
 
-app = Flask(__name__)
 app.config.from_object(con)
 CSRFProtect(app)
 db.init_app(app)
@@ -197,15 +196,19 @@ app.add_url_rule("/regist/", view_func=My_regist.as_view("regist"))
 @app.route("/get_captcha/", methods=["POST"])
 def get_captcha_code():
     email = flask.request.form.get("email", None)
-    if email:
+    user = User.query.filter_by(email=email).first()
+    if email and not user:
         captcha_code = get_captcha(6)
+        subject = "库管验证码"
         data = "欢迎注册仓库管理系统，您的注册码为:%s, 请您把注册码填写到注册页面中，该注册码30分钟内有效!" % captcha_code
-        state, rs = send_mail("库管验证码", email, data=data)
-        if state:
-            set_memcache_data(captcha_code, 60 * 30)
-            return flask.jsonify({"code": 200, "message": "恭喜，验证码发送成功!"})
-        else:
-            return flask.jsonify({"code": 400, "message": str(rs)})
+        # state, rs = send_mail("库管验证码", email, data=data)
+        # if state:
+        #     set_memcache_data(captcha_code, 60 * 30)
+        #     return flask.jsonify({"code": 200, "message": "恭喜，验证码发送成功!"})
+        # else:
+        #     return flask.jsonify({"code": 400, "message": str(rs)})
+        send_captcha_email.delay(subject, email, body=data)
+        return flask.jsonify({"code": 200, "message": "恭喜，验证码发送成功!"})
 
 
 @app.route("/detail/<number>/")
